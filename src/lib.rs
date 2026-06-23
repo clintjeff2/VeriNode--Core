@@ -1356,7 +1356,7 @@ impl SoroSusu {
         let mut final_status = LeniencyRequestStatus::Rejected;
         
         if request.total_votes_cast >= minimum_participation {
-            let approval_percentage = (request.approve_votes * 100) / request.total_votes_cast;
+            let approval_percentage = if request.total_votes_cast > 0 { (request.approve_votes * 100) / request.total_votes_cast } else { 0 };
             if approval_percentage >= SIMPLE_MAJORITY_THRESHOLD {
                 final_status = LeniencyRequestStatus::Approved;
                 
@@ -1405,7 +1405,7 @@ impl SoroSusu {
 
         if stats.total_requests > 0 {
             let total_participation = stats.average_participation * (stats.total_requests - 1) + request.total_votes_cast;
-            stats.average_participation = total_participation / stats.total_requests;
+            stats.average_participation = if stats.total_requests > 0 { total_participation / stats.total_requests } else { 0 };
         }
 
         env.storage().instance().set(&stats_key, &stats);

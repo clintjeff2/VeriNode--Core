@@ -4,14 +4,12 @@ use crate::slashing::executor;
 use crate::{DataKey, SCAN_INTERVAL};
 
 pub fn evaluate_conditions(env: &Env, node_id: Address, scan_epoch: u64) {
-    // 1. Pre-check gate: check if slashed within the last scan interval
     if let Some(slashed_at) = env.storage().instance().get::<_, u64>(&DataKey::SlashedAt(node_id.clone())) {
         if env.ledger().timestamp() < slashed_at + SCAN_INTERVAL {
             return;
         }
     }
 
-    // 2. Node-level slashing lock: prevent concurrent processing
     let lock_key = DataKey::SlashingInProgress(node_id.clone());
     if env.storage().instance().has(&lock_key) {
         return;
@@ -20,17 +18,15 @@ pub fn evaluate_conditions(env: &Env, node_id: Address, scan_epoch: u64) {
 
     let mut reasons = Vec::new(env);
 
-    // Evaluate conditions
-    if check_double_signing(env, &node_id) {
+    if detect_double_signing(env, &node_id) {
         reasons.push_back(SlashingReason::DoubleSigning);
     }
 
-    if check_downtime(env, &node_id) {
+    if detect_downtime(env, &node_id) {
         reasons.push_back(SlashingReason::Downtime);
     }
 
     if reasons.len() > 0 {
-        // Create ONE SlashingEvent per node per scan with all reasons
         let event = SlashingEvent {
             node_id: node_id.clone(),
             scan_epoch,
@@ -38,23 +34,22 @@ pub fn evaluate_conditions(env: &Env, node_id: Address, scan_epoch: u64) {
             timestamp: env.ledger().timestamp(),
         };
 
-        // Record event (unique constraint on epoch) and execute
         if event_store::record_event(env, event) {
             if executor::execute_slashing(env, node_id.clone()) {
-                // Update last slashed timestamp
                 env.storage().instance().set(&DataKey::SlashedAt(node_id.clone()), &env.ledger().timestamp());
             }
         }
     }
 
-    // Clear the lock
     env.storage().instance().remove(&lock_key);
 }
 
-fn check_double_signing(_env: &Env, _node_id: &Address) -> bool {
-    false // Implementation stub
+fn detect_double_signing(_env: &Env, _node_id: &Address) -> bool {
+    // Placeholder for actual detection logic
+    false
 }
 
-fn check_downtime(_env: &Env, _node_id: &Address) -> bool {
-    false // Implementation stub
+fn detect_downtime(_env: &Env, _node_id: &Address) -> bool {
+    // Placeholder for actual detection logic
+    false
 }

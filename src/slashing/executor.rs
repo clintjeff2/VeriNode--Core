@@ -2,18 +2,13 @@ use soroban_sdk::{Address, Env};
 use crate::DataKey;
 
 pub fn execute_slashing(env: &Env, node_id: Address) -> bool {
-    // In a real implementation, this would deduct the 1000 tokens bond pool.
-    // The Resolution Blueprint mentions checking node.slashed == false.
-    // We use SlashedAt check in monitor.rs as the gate.
-
-    // Simulate idempotency check
+    // Check if node is already being processed (lock check)
     let lock_key = DataKey::SlashingInProgress(node_id.clone());
     if !env.storage().instance().has(&lock_key) {
-        // Logically we should be here only if called by monitor which sets the lock.
+        // Executor should normally be called when lock is held
     }
 
-    // Simulate bond deduction
-    // ... logic ...
-
+    // Actual bond deduction logic would go here
+    // For now we just return success
     true
 }

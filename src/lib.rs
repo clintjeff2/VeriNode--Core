@@ -4,6 +4,8 @@ use soroban_sdk::{
     Address, Env, String, Vec,
 };
 
+pub mod slashing;
+
 // --- ERROR CODES ---
 
 #[contracterror]
@@ -45,6 +47,7 @@ pub enum Error {
     InvalidProposalType = 33,
     QuorumNotMet = 34,
     ProposalExpired = 35,
+    InsufficientPoolBalance = 36,
 }
 
 // --- CONSTANTS ---
@@ -61,6 +64,7 @@ const MAX_VOTE_WEIGHT: u32 = 100; // Maximum quadratic vote weight
 const MIN_GROUP_SIZE_FOR_QUADRATIC: u32 = 10; // Enable quadratic voting for groups >= 10 members
 const DEFAULT_COLLATERAL_BPS: u32 = 2000; // 20%
 const HIGH_VALUE_THRESHOLD: i128 = 1_000_000_0; // 1000 XLM (assuming 7 decimals)
+pub const SCAN_INTERVAL: u64 = 21600; // 6 hours in seconds
 
 // --- DATA STRUCTURES ---
 
@@ -88,6 +92,8 @@ pub enum DataKey {
     QuadraticVote(u64, Address),
     VotingPower(Address, u64),
     ProposalStats(u64),
+    SlashingInProgress(Address),
+    SlashedAt(Address),
 }
 
 #[contracttype]

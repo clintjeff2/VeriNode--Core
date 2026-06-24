@@ -1,5 +1,8 @@
 #![no_std]
+extern crate alloc;
 pub mod reputation;
+pub mod network;
+pub mod slashing;
 use soroban_sdk::{
     contract, contractclient, contracterror, contractimpl, contracttype, token,
     Address, Env, String, Vec,

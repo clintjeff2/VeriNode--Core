@@ -4,6 +4,13 @@ use soroban_sdk::{
     Address, Env, String, Vec,
 };
 
+// Validator lifecycle and state transition.
+// `validator` provides a deterministic exit queue ordered strictly by
+// (exit_epoch, validator_index); `state` drains it during the epoch
+// transition so exit processing is reproducible across clients.
+pub mod state;
+pub mod validator;
+
 // --- ERROR CODES ---
 
 #[contracterror]

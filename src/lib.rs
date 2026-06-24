@@ -5,6 +5,13 @@ use soroban_sdk::{
     Address, Env, String, Vec,
 };
 
+// Cryptographic primitives and attestation signature verification.
+// `crypto` provides a dependency-free SHA-256, SSZ-style merkleization, and
+// domain separation; `attestation` computes domain-separated signing roots so
+// signatures cannot be replayed across consensus domains.
+pub mod attestation;
+pub mod crypto;
+
 // --- ERROR CODES ---
 
 #[contracterror]

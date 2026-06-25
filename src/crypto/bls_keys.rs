@@ -26,7 +26,9 @@ pub const G2_COFACTOR: u64 = 15_132_376_222_941_654_852;
 // MODEL_COFACTOR > 1 means small-order points outside the subgroup exist, just
 // as they do on the real curve.
 const MODEL_COFACTOR: u64 = 6; // 2 * 3 -> small-order subgroups of order 2 and 3
-const MODEL_GROUP_ORDER: u64 = PRIME_SUBGROUP_ORDER * MODEL_COFACTOR; // 606
+
+/// Full group order (for testing). Product of prime subgroup order and cofactor.
+pub const MODEL_GROUP_ORDER: u64 = PRIME_SUBGROUP_ORDER * MODEL_COFACTOR; // 606
 
 /// Order `r` of the prime-order subgroup valid public keys must belong to.
 pub const PRIME_SUBGROUP_ORDER: u64 = 101;

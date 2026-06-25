@@ -11,6 +11,7 @@ use crate::attestation::bitfield::AttestationBitfield;
 use crate::crypto::domain::Domain;
 use crate::crypto::merkle::{merkleize_8, Hash256};
 use crate::crypto::sha256::sha256;
+use crate::validator::committee_assignment::CommitteeView;
 
 /// Simplified beacon-chain `AttestationData` container (7 fields).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -168,4 +169,54 @@ fn ct_eq(a: &Hash256, b: &Hash256) -> bool {
         diff |= a[i] ^ b[i];
     }
     diff == 0
+}
+
+/// Verify an attestation against a committee view (with reorg support).
+///
+/// This function accepts a [`CommitteeView`] which may be:
+/// - `Stable`: attestation must match the single committee root
+/// - `Ambiguous`: attestation may match either the old or new committee root
+///
+/// This allows attestations to be verified during mid-epoch validator set
+/// reorganizations, where validators may attest using either the pre-reorg
+/// or post-reorg committee composition.
+pub fn verify_attestation_with_committee_view(
+    bitfield: &AttestationBitfield,
+    keys: &[SecretKey],
+    domain: &Domain,
+    data: &AttestationData,
+    signatures: &[Signature],
+    committee_view: &CommitteeView,
+    committee_root: &Hash256,
+) -> bool {
+    // First check if the provided committee root matches the view
+    if !committee_view.matches(committee_root) {
+        return false;
+    }
+
+    // Then perform standard attestation verification
+    verify_attestation(bitfield, keys, domain, data, signatures)
+}
+
+/// Convenience function to verify attestation with stable committee.
+/// This is equivalent to the original `verify_attestation` but explicitly
+/// requires a committee root to be provided.
+pub fn verify_attestation_with_root(
+    bitfield: &AttestationBitfield,
+    keys: &[SecretKey],
+    domain: &Domain,
+    data: &AttestationData,
+    signatures: &[Signature],
+    committee_root: &Hash256,
+) -> bool {
+    let view = CommitteeView::stable(*committee_root);
+    verify_attestation_with_committee_view(
+        bitfield,
+        keys,
+        domain,
+        data,
+        signatures,
+        &view,
+        committee_root,
+    )
 }

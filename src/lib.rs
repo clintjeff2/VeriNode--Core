@@ -24,6 +24,7 @@ pub mod consensus;
 // transition so exit processing is reproducible across clients.
 pub mod state;
 pub mod validator;
+pub mod db;
 
 // --- ERROR CODES ---
 

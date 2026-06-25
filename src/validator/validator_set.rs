@@ -26,6 +26,8 @@ pub struct Validator {
 pub struct ValidatorSet {
     validators: Vec<Validator>,
     exit_queue: ExitQueue,
+    /// Slot at which the last reorganization occurred
+    last_reorg_slot: Option<u64>,
 }
 
 impl ValidatorSet {
@@ -34,6 +36,7 @@ impl ValidatorSet {
         Self {
             validators: Vec::new(),
             exit_queue: ExitQueue::new(),
+            last_reorg_slot: None,
         }
     }
 
@@ -85,5 +88,26 @@ impl ValidatorSet {
             processed.push(index);
         }
         processed
+    }
+
+    /// Trigger a mid-epoch reorganization at the given slot.
+    /// This should be called when a validator exits irregularly or
+    /// activates late, causing the committee composition to change.
+    pub fn reorg_validator_set(&mut self, slot: u64) {
+        self.last_reorg_slot = Some(slot);
+    }
+
+    /// Get the slot of the last reorganization, if any.
+    pub fn last_reorg_slot(&self) -> Option<u64> {
+        self.last_reorg_slot
+    }
+
+    /// Get all active validator indices.
+    pub fn active_validators(&self) -> Vec<ValidatorIndex> {
+        self.validators
+            .iter()
+            .filter(|v| v.status == ValidatorStatus::Active)
+            .map(|v| v.index)
+            .collect()
     }
 }

@@ -2,3 +2,4 @@
 
 pub mod exit_queue;
 pub mod validator_set;
+pub mod committee_assignment;

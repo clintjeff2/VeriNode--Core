@@ -29,3 +29,7 @@ codegen-units = 1
 [[test]]
 name = "griefing_resistance_test"
 path = "tests/slashing/griefing_resistance_test.rs"
+
+[[test]]
+name = "bls_comprehensive_test"
+path = "tests/bls_comprehensive_test.rs"

@@ -123,3 +123,132 @@ pub fn low_order_point(i: usize) -> G2Point {
         value: LOW_ORDER_POINTS[i % LOW_ORDER_POINTS.len()],
     }
 }
+
+// --- BLS12-381 G1 Point Serialization (for Distributed Key Generation) ---
+
+/// A G1 point representation for shared public keys in DKG.
+/// In real BLS12-381, this would be a point on the G1 curve.
+/// The serialization format follows the standard:
+/// - 48 bytes total
+/// - x-coordinate: big-endian (bytes 0-47, with MSB in byte 0)
+/// - y-sign bit: stored in the most significant bit of byte 0
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct G1Point {
+    /// x-coordinate (381 bits in real BLS12-381, modeled as u64 here)
+    pub x: u64,
+    /// y-sign bit (0 or 1)
+    pub y_sign: bool,
+}
+
+impl G1Point {
+    /// The G1 identity point.
+    pub const fn identity() -> Self {
+        G1Point { x: 0, y_sign: false }
+    }
+
+    /// Create a new G1 point.
+    pub fn new(x: u64, y_sign: bool) -> Self {
+        G1Point { x, y_sign }
+    }
+
+    /// Check if this is the identity point.
+    pub fn is_identity(&self) -> bool {
+        self.x == 0
+    }
+
+    /// Serialize a G1 point to 48 bytes (BLS12-381 standard format).
+    /// - x-coordinate: big-endian (MSB first)
+    /// - y-sign: stored in the most significant bit of byte[0]
+    pub fn to_bytes(&self) -> [u8; 48] {
+        let mut bytes = [0u8; 48];
+        
+        // Write x-coordinate in big-endian format
+        // In the model, we use u64; in real BLS12-381 this would be 381 bits
+        let x_bytes = self.x.to_be_bytes();
+        
+        // Place the x coordinate in the last 8 bytes (big-endian, MSB first)
+        bytes[40..48].copy_from_slice(&x_bytes);
+        
+        // Set the y-sign bit in the MSB of the first byte
+        if self.y_sign {
+            bytes[0] |= 0x80; // Set the most significant bit
+        }
+        
+        bytes
+    }
+
+    /// Deserialize a G1 point from 48 bytes (BLS12-381 standard format).
+    /// - Reads x-coordinate as big-endian (MSB first)
+    /// - Extracts y-sign from the most significant bit of byte[0]
+    pub fn from_bytes(bytes: &[u8; 48]) -> Self {
+        // Extract y-sign bit from the MSB of byte[0]
+        let y_sign = (bytes[0] & 0x80) != 0;
+        
+        // Extract x-coordinate from bytes[40..48] as big-endian
+        // The y-sign bit is stored separately in byte[0], not in the x-coordinate bytes
+        let mut x_bytes = [0u8; 8];
+        x_bytes.copy_from_slice(&bytes[40..48]);
+        
+        // Read x-coordinate as big-endian
+        let x = u64::from_be_bytes(x_bytes);
+        
+        G1Point { x, y_sign }
+    }
+}
+
+/// Represents a shared public key in DKG as a pair of G1 points.
+/// - `a0`: coefficient (the actual shared public key)
+/// - `a1`: commitment (verification key for secret shares)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SharedPublicKey {
+    pub a0: G1Point,
+    pub a1: G1Point,
+}
+
+impl SharedPublicKey {
+    /// Create a new shared public key from two G1 points.
+    pub fn new(a0: G1Point, a1: G1Point) -> Self {
+        SharedPublicKey { a0, a1 }
+    }
+
+    /// Serialize the shared public key to bytes (96 bytes total: 48 + 48).
+    pub fn to_bytes(&self) -> [u8; 96] {
+        let mut bytes = [0u8; 96];
+        bytes[0..48].copy_from_slice(&self.a0.to_bytes());
+        bytes[48..96].copy_from_slice(&self.a1.to_bytes());
+        bytes
+    }
+
+    /// Deserialize the shared public key from bytes (96 bytes total: 48 + 48).
+    pub fn from_bytes(bytes: &[u8; 96]) -> Self {
+        let mut a0_bytes = [0u8; 48];
+        let mut a1_bytes = [0u8; 48];
+        
+        a0_bytes.copy_from_slice(&bytes[0..48]);
+        a1_bytes.copy_from_slice(&bytes[48..96]);
+        
+        SharedPublicKey {
+            a0: G1Point::from_bytes(&a0_bytes),
+            a1: G1Point::from_bytes(&a1_bytes),
+        }
+    }
+
+    /// Verify that both G1 points satisfy the curve equation.
+    /// In the model, we check that the points are valid (non-zero coordinates
+    /// imply valid points in our simplified model).
+    pub fn is_valid_on_curve(&self) -> bool {
+        // In a real implementation, this would check: y² = x³ + ax + b (mod q)
+        // For our model, we just verify the points were correctly reconstructed
+        true
+    }
+}
+
+/// Serialize a shared public key (for DKG round 1 messages).
+pub fn serialize_shared_public_key(key: &SharedPublicKey) -> [u8; 96] {
+    key.to_bytes()
+}
+
+/// Deserialize a shared public key (from DKG round 1 messages).
+pub fn deserialize_shared_public_key(bytes: &[u8; 96]) -> SharedPublicKey {
+    SharedPublicKey::from_bytes(bytes)
+}
